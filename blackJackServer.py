@@ -68,24 +68,69 @@ while waitingForGameToStart:
             # After all clients have been notified, breakout out of while loop to start the game loop.
             waitingForGameToStart = False
 
+
+def dealcards(dct, fc_dct):
+    cstring = ""
+    # Dealing each player two cards 
+    for currentTurn in range(1, len(sockets_list)):
+        dct[currentTurn] = []
+
+    for currentTurn in range(1, len(sockets_list)):  
+        dct[currentTurn].append(random.randrange(1,14))
+        dct[currentTurn].append(random.randrange(1,14))
+    # creating the message string
+    for currentTurn in range(1, len(sockets_list)):
+        card1_value = dct[currentTurn][0]
+        card2_value = dct[currentTurn][1]
+        card1 = fc_dct.get(card1_value, card1_value) 
+        card2 = fc_dct.get(card2_value, card2_value) 
+        cstring += f"Player{currentTurn} cards are {card1}, {card2} \n"
+    return cstring
+def hit(dct, fc_dct, index):
+    cstring = ""
+    
+    dct[index].append(random.randrange(1,14))
+    cstring += f"Player{currentTurn} cards are"
+    for cardindex in range(1, len(dct[index])):
+        card_value = dct[index][cardindex]
+        card = fc_dct.get(card_value, card_value) 
+        cstring += "{card}, "
+    return cstring
+
+
 # This is the start of the game loop
 # Creating a card deck of 13 cards of each suite
 facecards_pip = {10: "Jack", 11: "Queen", 12: "King", 13: "Ace"}
 while True:
     currentCards = {}
     messageString = ""
-    # Dealing each player two cards and then sending out the results 
+    currentCards = {}
+    cardString = dealcards(currentCards, facecards_pip)
+    print(cardString)
+    print(currentCards)
+    #sending each player everyones cards
     for currentTurn in range(1, len(sockets_list)):
-        currentCards[currentTurn] = []
+        for clientMessage in range(1, len(sockets_list)):
+            sockets_list[clientMessage].send(f"{len(cardString):<{HEADER_LENGTH}}".encode('utf-8') + cardString.encode('utf-8'))
+            messageString = f"Player {currentTurn} turn, waiting for player {currentTurn} to make a move"
+            if currentTurn == clientMessage:
+                messageString = f"Player {currentTurn} turn, press 1 for hit or 2 for stay"
+                sockets_list[clientMessage].send(f"{len(messageString):<{HEADER_LENGTH}}".encode('utf-8') + messageString.encode('utf-8'))
+                continue 
+            sockets_list[clientMessage].send(f"{len(messageString):<{HEADER_LENGTH}}".encode('utf-8') + messageString.encode('utf-8'))
 
-    for currentTurn in range(1, len(sockets_list)):  
-        currentCards[currentTurn].append(random.randrange(1,14))
-        currentCards[currentTurn].append(random.randrange(1,14))
+        if message == "1":
+            while(message != "2"):
+                message = receive_message(sockets_list[currentTurn])
+                cardString = hit(currentCards, facecards_pip, currentTurn)
+                for clientMessage in range(1, len(sockets_list)):
+                    sockets_list[clientMessage].send(f"{len(cardString):<{HEADER_LENGTH}}".encode('utf-8') + cardString.encode('utf-8'))
+                    messageString = f"Player {currentTurn} turn, waiting for player {currentTurn} to make a move"
+                    if currentTurn == clientMessage:
+                        messageString = f"Player {currentTurn} turn, press 1 for hit or 2 for stay"
+                        sockets_list[clientMessage].send(f"{len(messageString):<{HEADER_LENGTH}}".encode('utf-8') + messageString.encode('utf-8'))
+                        continue 
+                sockets_list[clientMessage].send(f"{len(messageString):<{HEADER_LENGTH}}".encode('utf-8') + messageString.encode('utf-8'))
 
-    for currentTurn in range(1, len(sockets_list)):
-        card1_value = currentCards[currentTurn][0]
-        card2_value = currentCards[currentTurn][1]
-        card1 = facecards_pip.get(card1_value, card1_value) 
-        card2 = facecards_pip.get(card2_value, card2_value) 
-        print(f"cards are {card1} and {card2} \n")
-    break
+
+    
